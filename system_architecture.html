@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Architecture - Untethered Dead Reckoning & GNSS-INS Fusion</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 15mm;
+        }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: #1e293b;
+            line-height: 1.5;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+        }
+        .header {
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            color: #1e3a8a;
+            margin: 0;
+            font-size: 22pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .header .subtitle {
+            color: #64748b;
+            font-size: 11pt;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+        .section-title {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            padding: 6px 10px;
+            font-size: 12pt;
+            font-weight: bold;
+            border-left: 4px solid #2563eb;
+            margin-top: 18px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+            margin-bottom: 15px;
+            font-size: 9.5pt;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 7px 9px;
+            text-align: left;
+        }
+        th {
+            background-color: #1e293b;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .card {
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px 12px;
+            background-color: #fafafa;
+        }
+        .card h3 {
+            margin-top: 0;
+            margin-bottom: 6px;
+            color: #2563eb;
+            font-size: 11pt;
+        }
+        .card ul {
+            margin: 0;
+            padding-left: 18px;
+            font-size: 9pt;
+        }
+        .card li {
+            margin-bottom: 4px;
+        }
+        .code-box {
+            background-color: #0f172a;
+            color: #f8fafc;
+            padding: 10px 12px;
+            border-radius: 5px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 8.5pt;
+            white-space: pre-wrap;
+            margin-bottom: 12px;
+        }
+        .badge {
+            background-color: #dbeafe;
+            color: #1e40af;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 8.5pt;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>System Architecture Specification</h1>
+        <div class="subtitle">Research Specification | Multi-Sensor GNSS-INS Fusion & Dead Reckoning Engine</div>
+    </div>
+
+    <div class="section-title">1. Executive Summary & Core Objective</div>
+    <p style="font-size: 9.5pt; margin-top: 5px;">
+        This document outlines the software and hardware architecture for a high-precision, low-latency <b>Inertial Navigation System (INS)</b> integrated with vehicle telematics. The objective is to restrict positional drift to <b>&lt; 10% of total distance traveled</b> (target: &lt; 0.5% - 1% with car sensors) during GNSS blackouts (tunnels, underground metros, basements) across smartphone (10Hz) and Edge-based (200Hz) execution tiers.
+    </p>
+
+    <div class="section-title">2. Multi-Source Ingestion Matrix</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Data Source</th>
+                <th>Sensor / Interface</th>
+                <th>Extracted Parameters</th>
+                <th>Rate</th>
+                <th>Role in Sensor Fusion</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><b>Smartphone</b></td>
+                <td>3-Axis Accelerometer</td>
+                <td>Linear Accel ($A_x, A_y, A_z$)</td>
+                <td>100Hz</td>
+                <td>Motion tracking, gravity vector determination</td>
+            </tr>
+            <tr>
+                <td><b>Smartphone</b></td>
+                <td>3-Axis Gyroscope</td>
+                <td>Angular Velocity ($\omega_x, \omega_y, \omega_z$)</td>
+                <td>100Hz</td>
+                <td>Rotational dynamics, heading rate</td>
+            </tr>
+            <tr>
+                <td><b>Smartphone</b></td>
+                <td>Magnetometer & Barometer</td>
+                <td>Magnetic Vector, Pressure</td>
+                <td>10-50Hz</td>
+                <td>Absolute compass orientation, elevation shifts</td>
+            </tr>
+            <tr>
+                <td><b>Car Telematics</b></td>
+                <td>ELM327 BLE / OBD-II</td>
+                <td>Vehicle Speed (PID 010D)</td>
+                <td>20-50Hz</td>
+                <td>Zero-drift forward velocity constraint</td>
+            </tr>
+            <tr>
+                <td><b>Car Telematics</b></td>
+                <td>Android Auto / CAN Bus</td>
+                <td>Wheel Ticks, Steering Angle</td>
+                <td>100Hz</td>
+                <td>Differential speed calculation, turning radius</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="section-title">3. Dual-Tier Technology Stack</div>
+    <div class="grid-container">
+        <div class="card">
+            <h3>Tier 1: Smartphone Mobile Application (10Hz)</h3>
+            <ul>
+                <li><b>Frontend UI:</b> Flutter (Dart) / Native Android (Kotlin)</li>
+                <li><b>Native Core:</b> C++ via JNI for high-performance math</li>
+                <li><b>Hardware Processing:</b> SensorHub FIFO batching API</li>
+                <li><b>Connectivity:</b> Bluetooth LE (ELM327) + Android Auto API</li>
+                <li><b>Database:</b> SQLite + SpatiaLite (Offline tunnel polylines)</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>Tier 2: Edge Simulator & Node (200Hz)</h3>
+            <ul>
+                <li><b>Runtime Platform:</b> Embedded Linux (Jetson / RPi) / C++20</li>
+                <li><b>Framework:</b> ROS2 (Robot Operating System) Nodes</li>
+                <li><b>Math & Fusion Engine:</b> Eigen3 (Linear Algebra) + Sophus</li>
+                <li><b>Perception Fusion:</b> OpenCV (Visual Odometry)</li>
+                <li><b>Telemetry Dashboard:</b> Python PyQt6 / WebSockets + Plotly</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="section-title">4. Algorithmic Pipeline & Mathematics</div>
+    <div class="code-box">
+1. DYNAMIC FRAME ALIGNMENT (Direction Cosine Matrix):
+   A_vehicle = R_alignment * A_phone
+   - Static: Resolves Pitch & Roll by aligning IMU Z-axis with Earth Gravity Vector.
+   - Dynamic: Solves Yaw by matching linear drive pulse with GNSS vector before entry.
+
+2. ERROR-STATE EXTENDED KALMAN FILTER (15-State ES-EKF):
+   State = [Position_Error, Velocity_Error, Attitude_Error, Accel_Bias, Gyro_Bias]
+
+3. DRIFT CONSTRAINTS (Circuit Breakers):
+   - Zero Velocity Update (ZUPT): Forces Velocity = 0 when Gyro & Accel variance < Threshold.
+   - Non-Holonomic Constraints (NHC): Enforces V_lateral = 0 and V_vertical = 0.
+   - HMM Map Matching: Snaps trajectory to 1D center-line polylines inside mapped tunnels.
+    </div>
+
+    <div class="page-break"></div>
+
+    <div class="section-title">5. End-to-End Software Architecture Pipeline</div>
+    <div class="code-box">
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                              INCOMING SENSOR STREAMS                                   │
+│            [Smartphone IMU @ 100Hz]    +    [Car OBD-II / CAN Bus @ 50Hz]              │
+└───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                            │
+                                            ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        PRE-PROCESSING & FRAME ALIGNMENT                                │
+│    • Coordinate Rotation (Phone -> Vehicle Chassis)  • Gravity Leakage Removal         │
+└───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                            │
+                                            ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                           SENSOR FUSION KERNEL (ES-EKF)                                │
+│    • Predict State (Strapdown Integration)           • Motion Constraints (NHC / ZUPT) │
+│    • Measurement Updates (OBD Speed, SAS Angle)      • Bias Auto-Compensation          │
+└───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                            │
+                                            ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                          GEOSPATIAL MAP-MATCHING & OUTPUT                              │
+│    • HMM Polyline Snapping  ───>  [10Hz Mobile UI]  /  [200Hz Edge Engine]               │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+    </div>
+
+    <div class="section-title">6. Research & Engineering Role Division</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Member Role</th>
+                <th>Primary Focus Area</th>
+                <th>Key Deliverable</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><b>Dev 1 (Mobile Lead)</b></td>
+                <td>Flutter/Kotlin Application</td>
+                <td>10Hz Mobile UI, Tunnel Mode Switch, Offline Maps</td>
+            </tr>
+            <tr>
+                <td><b>Dev 2 (Algorithm Lead)</b></td>
+                <td>C++ / Python Processing Core</td>
+                <td>ES-EKF algorithm, Frame Alignment Matrix, ZUPT</td>
+            </tr>
+            <tr>
+                <td><b>Dev 3 (Hardware / Telematics)</b></td>
+                <td>OBD-II & CAN Simulator</td>
+                <td>Python Bluetooth OBD-II Data Streamer Script</td>
+            </tr>
+            <tr>
+                <td><b>Dev 4 (GIS & Testing)</b></td>
+                <td>Map-Matching & Benchmarking</td>
+                <td>Mapbox Tunnel Snapping & Benchmark Accuracy Charts</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div style="margin-top: 25px; text-align: center; color: #64748b; font-size: 8.5pt;">
+        Generated for Academic Research Paper Submission • System Architecture Specification
+    </div>
+
+</body>
+</html>

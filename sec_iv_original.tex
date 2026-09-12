@@ -1,0 +1,99 @@
+\section{Proposed System Architecture}
+
+\begin{figure}[t]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[
+  node distance=6mm and 6mm,
+  box/.style={draw, rounded corners, align=center, minimum height=9mm, font=\scriptsize, text width=2.35cm, fill=gray!8},
+  arr/.style={-{Latex[length=2mm]}, thick}
+]
+\node[box] (raw) {IMU / Mag / GNSS\\raw streams};
+\node[box, below=of raw] (align) {In-Vehicle Alignment \&\\Calibration Engine};
+\node[box, below=of align] (ai) {AI Speed \& Vibration\\Filter (GBDT)};
+\node[box, below=of ai] (eskf) {GNSS+INS AI Fusion\\Engine (15-State ESKF + NHC)};
+\node[box, below=of eskf] (mm) {3D Map-Matching \&\\Road-Type Classifier};
+\node[box, below=of mm] (nav) {Navigation Interface\\(position, velocity, heading)};
+\node[box, right=14mm of eskf, text width=2.1cm] (deficit) {Seamless GNSS-Deficit\\Handler ($\chi^2$ Gate)};
+\draw[arr] (raw) -- (align);
+\draw[arr] (align) -- (ai);
+\draw[arr] (ai) -- (eskf);
+\draw[arr] (eskf) -- (mm);
+\draw[arr] (mm) -- (nav);
+\draw[arr] (deficit) -- (eskf);
+\draw[arr] (raw.east) -| ++(0.4,0) |- (deficit.north);
+\end{tikzpicture}%
+}
+\caption{Algorithmic dataflow showing supervisory switching and innovation gating across filter cycles.}
+\label{fig:arch}
+\end{figure}
+
+The overarching system layout shown in Fig.~\ref{fig:overall_arch} translates into the runtime execution pipeline detailed in Fig.~\ref{fig:arch}. All processing steps run directly on commodity smartphone hardware without requiring telemetry feeds from an OBD-II port.
+
+\subsection{In-Vehicle Alignment \& Cradle Shift Watchdog}
+
+Dynamic mounting calibration executes in two distinct phases:
+\begin{enumerate}
+\item \textbf{Gravity Leveling}: When the vehicle is near rest or constant-speed cruising, the static gravity vector is estimated to extract roll $\phi$ and pitch $\theta$, aligning the vertical sensor axis.
+\item \textbf{Forward Acceleration PCA}: Transients from acceleration and braking define the primary longitudinal motion axis via Principal Component Analysis (PCA), resolving yaw heading $\psi$.
+\end{enumerate}
+
+The watchdog monitors high-frequency angular deviations; upon detecting cradle slip or phone dislodgement, alignment confidence is set to 40\% and an immediate background recalibration cycle restores full alignment within 4\,s without terminating the dead-reckoning engine.
+
+\subsection{AI Speed \& Vibration Filter}
+
+To prevent road shock and engine idling from corrupting the kinematic model, an optimized Gradient-Boosted Decision Tree (GBDT) ensemble (120 estimators, maximum depth 5, learning rate 0.08) maps 1.0\,s sliding windows (10 samples at 10\,Hz) to vehicle forward velocity $\hat{v}_t$:
+\begin{equation}
+\hat{v}_t = f_{\Theta}\left(\tilde{\mathbf{a}}^v_{t-w:t}, \tilde{\boldsymbol{\omega}}^v_{t-w:t}\right) = \sum_{m=1}^{M} \gamma_m h_m(\mathbf{x}_t)
+\end{equation}
+
+Extracted features include signal magnitude area (SMA), time-domain statistical moments, vertical vibration energy envelopes, and centripetal acceleration constraints $a_y \approx v\omega_z$. Tree leaf outputs are strictly bounded by the training label range ($0 \leq v_x \leq 35$\,m/s), preventing velocity blowups under out-of-distribution shocks. The ensemble's decision boundaries implicitly discard high-frequency engine idle vibrations (15--30\,Hz) and severe vertical pothole shock impulses ($\leq$3.2$g$), while the centripetal and jerk-based features track acceleration and braking dynamics. Compared with deep sequence architectures (e.g., CNN-GRU), the GBDT ensemble carries a serialized footprint under 2.1\,MB, requires no PyTorch/TensorFlow mobile runtime, and produces deterministic, output-bounded single-sample inference -- properties that matter directly for battery-constrained, framework-free Android/iOS deployment.
+
+\subsection{15-State Error-State Kalman Filter (ESKF) with Physics Constraints}
+
+The nominal state vector tracks 3D position, velocity, orientation, and IMU sensor biases:
+\begin{equation}
+\mathbf{x} = \left[\mathbf{p}^n, \mathbf{v}^n, \mathbf{q}_b^n, \mathbf{b}_a^b, \mathbf{b}_g^b\right]^T \in \mathbb{R}^{16}
+\end{equation}
+
+The true state is modeled as $\mathbf{x} = \hat{\mathbf{x}} \oplus \delta\mathbf{x}$, where the 15-dimensional error-state vector is defined as:
+\begin{equation}
+\delta\mathbf{x} = \left[\delta\mathbf{p}^n, \delta\mathbf{v}^n, \delta\boldsymbol{\theta}^n, \delta\mathbf{b}_a^b, \delta\mathbf{b}_g^b\right]^T \in \mathbb{R}^{15}
+\end{equation}
+
+Continuous-time error dynamics follow $\delta\dot{\mathbf{x}} = \mathbf{F}\delta\mathbf{x} + \mathbf{G}\mathbf{w}$, integrated discretely via $\boldsymbol{\Phi} \approx \mathbf{I} + \mathbf{F}\Delta t$. Filter covariance propagates according to:
+\begin{equation}
+\mathbf{P}_{k|k-1} = \boldsymbol{\Phi}\mathbf{P}_{k-1|k-1}\boldsymbol{\Phi}^T + \mathbf{Q}_d
+\end{equation}
+
+The filter is updated via three independent constraints:
+\begin{enumerate}
+\item \textbf{AI Longitudinal Velocity Update}: Replaces OBD-II speedometer inputs:
+\begin{equation}
+z_v = \hat{v}_t - (\mathbf{R}_b^n)^T \hat{\mathbf{v}}_x^n
+\end{equation}
+\item \textbf{Non-Holonomic Constraints (NHC)}: Road vehicles cannot slide sideways or lift off under normal road adhesion:
+\begin{equation}
+v_y^b \approx 0, \quad v_z^b \approx 0
+\end{equation}
+These conditions are injected as zero-mean virtual observations with calibrated measurement noise.
+\item \textbf{Zero Velocity Updates (ZUPT)}: Triggered when stationary variance conditions are satisfied, resetting velocity drift to zero and isolating IMU biases.
+\end{enumerate}
+
+\subsection{3D Map-Matching via HMM Viterbi Decoding}
+
+The drifting 3D coordinate vector is matched onto an offline road-network topology graph $\mathcal{M}$. For observation $\mathbf{z}_t = [p_x, p_y, p_z]^T$, candidate segments within search radius $\delta$ are evaluated. The observation emission probability accounts for 2D cross-track distance, vertical barometric elevation mismatch, and heading difference:
+\begin{equation}
+p(\mathbf{z}_t|s_i) = \frac{1}{\sqrt{2\pi}\sigma_d}\exp\left(-\frac{d_{\perp}^2}{2\sigma_d^2}\right) \cdot \frac{1}{\sqrt{2\pi}\sigma_h}\exp\left(-\frac{\Delta h^2}{2\sigma_h^2}\right)
+\end{equation}
+
+Transition probabilities evaluate topological road distance versus inertial arc length, strictly penalizing impossible vertical hops onto elevated flyovers without passing through valid on-ramp segments. Global Viterbi decoding computes the globally optimal sequence $\mathbf{S}^* = \arg\max \prod p(\mathbf{z}_t|s_i)p(s_i|s_{i-1})$.
+
+\subsection{Seamless GNSS-Deficit Handler with Chi-Square Innovation Gate}
+
+Upon tunnel entry or signal degradation, the supervisory controller transitions to dead reckoning within $<$5\,ms. Upon tunnel exit or signal recovery, multipath reflection spikes are rejected via a Chi-Square ($\chi^2$) innovation threshold:
+\begin{equation}
+\gamma = \mathbf{r}^T\mathbf{S}^{-1}\mathbf{r} \leq \chi^2_{\alpha,m}
+\end{equation}
+where $\mathbf{r} = \mathbf{z}_t^{GNSS} - \hat{\mathbf{z}}_t$ represents the innovation vector and $\mathbf{S}$ is the innovation covariance. Measurements exceeding the $p=0.01$ threshold ($\chi^2 > 11.35$ for 3-DOF) are discarded, preventing abrupt positional jumps before soft re-acquisition blends the solution.
+

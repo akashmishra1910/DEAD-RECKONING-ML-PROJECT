@@ -1,0 +1,15 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caches and temporary files
+.pytest_cache/
+/tmp/matplotlib_cache/
+.DS_Store
+
+# Scratch and test files
+test_arch.png
+test.pdf
+test.xml
+documentation.pdf

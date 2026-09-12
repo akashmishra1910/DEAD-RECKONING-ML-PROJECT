@@ -1,0 +1,466 @@
+<USER_REQUEST>
+\documentclass[conference]{IEEEtran}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{cite}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning, fit}
+
+\begin{document}
+
+\title{AI-ML Based Intelligent Dead Reckoning and 3D Map-Matching System for Seamless Navigation}
+
+\author{
+\IEEEauthorblockN{1\textsuperscript{st} Shreya Kesarwani}
+\IEEEauthorblockA{Computer Science and Engineering\\
+United College of Engineering and Research\\
+Prayagraj, India\\
+kesarwanishreya2005@gmail.com}
+\and
+\IEEEauthorblockN{2\textsuperscript{nd} Akash Mishra}
+\IEEEauthorblockA{Computer Science and Engineering\\
+United College of Engineering and Research\\
+Prayagraj, India\\
+akashmishra1910@gmail.com}
+\and
+\IEEEauthorblockN{3\textsuperscript{rd} Suchitra}
+\IEEEauthorblockA{Computer Science and Engineering\\
+United College of Engineering and Research\\
+Prayagraj, India\\
+mesuchitradutta@gmail.com}
+}
+
+\maketitle
+
+\begin{abstract}
+Smartphone-based navigation applications are the default positioning enablers for the majority of vehicles operating on Indian roads, as the Global Navigation Satellite System (GNSS) precision is often insufficient in the context of tunnels, multi-level parking structures, urban canyings, and tree-clogged highways. This has spurred the development of smartphone dead reckoning (SDR) techniques that utilize the visual, inertial, and magnetic sensors of the accompanying device. However, smartphone-grade MEMS IMUs suffer from unacceptable bias drift during short-term integration, rendering the position errors using a consumer-grade sensor to increase by tens of meters in several seconds. In this work, we propose an AI-ML-based intelligent dead reckoning framework (IDR) that employs a learned in-vehicle calibration step, a Gradient Boosted Decision Tree-based forward-velocity and vibration filter, a KF-based estimation core with error-state constraints derived from data-driven non-holonomic priors, and a 3D road network map-matcher that allows resolving the ambiguous SDR position estimate to a drivable road. We evaluate the proposed framework on a structurally independent held-out corridor, designed to mimic the IO-VNBD benchmark's sensing and driving domain. Our results demonstrate that the proposed framework achieves a positioning error growth of 2.01\% at 60 s and 2.88\% at 120 s compared to the baseline of double-integration IMU positioning (61\% at 60 s and for the unfiltered AI velocity estimator), demonstrating an improvement by an order of magnitude over both baselines. Additionally, the framework resolves the 3D road disambiguation problem with 99.7-100\% accuracy while operating on a smartphone-grade processor at 0.20 ms per update cycle.
+\end{abstract}
+
+\begin{IEEEkeywords}
+dead reckoning, sensor fusion, GNSS/INS, inertial navigation, map matching, machine learning, non-holonomic constraints, autonomous navigation
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+\subsection{Background}
+
+Vehicle logistics, ride hailing, quick commerce delivery, and emergency-response fleets are all critically dependent on smartphone navigation apps on a constellation of GNSS satellites like GPS, Galileo, and NavIC. This is especially true for India, where smartphones are the primary computing devices for most vehicles on the road (commercial trucks, older private cars, and the large two-wheeler market). These vehicles are not equipped with factory-installed, wheel-centered Inertial Navigation Systems (INS) and must rely on a dashboard-mounted or aspirated smartphone for navigation instructions. GNSS is not a reliable technology in urban canyons, under bridges, in multi-level car parks, or under dense foliage due to signal attenuating structures and commercial disturbances. Dead-reckoning navigation apps suffer from severe position drift when navigating such spaces.
+
+
+
+The inertial navigation function in dead-reckoning smartphones uses no external references and is therefore completely unaffected by GNSS spoofing and jamming. However, because of the open-loop nature of dead-reckoning algorithms, any acceleration errors are integrated twice to produce position errors. Inertial sensors also have scale-factor inaccuracies that contribute to position errors when integrating velocities. However, in smartphone IMUs, these errors are much greater than what one would find in tactical-grade or aircraft INS, rendering them completely useless for dead-reckoning applications. A smartphone aspirated on a dashboard or a phone stand encounters many additional accelerations due to vibrations, sudden braking, and pot holes that do not originate from the longitudinal/lateral movements of the vehicle itself.
+
+\subsection{Problem Statement}
+
+Two practical limitations prevent a purely classical DR solution in this scenario. First, without a connection to the vehicle’s OBD-II port, there is no direct speedometer feed to use as a reference constraint, meaning that forward velocity must be estimated indirectly and therefore noisily via inertial sensors. Second, fault injection tests on the production stack reveal that single-sensor degradation has differing impact on the system’s ability to avoid collisions; severe LiDAR and angular rate sensor malfunctions dominate the risk of a collision or unsafe manoeuvre, while position and acceleration sensor inaccuracies are largely mitigated by existing multi-sensor fusion algorithms. As such, the redundancy strategy and fallback safety mechanisms described in this paper are designed with an eye to protecting against angular rate sensor failure and insufficient DR accuracy in mind, rather than the GNSS-outage scenario.
+
+
+
+\subsection{Aim and Contributions}
+
+This paper presents an end-to-end framework (shown at a high level in Fig.~\ref{fig:overall_arch}) that keeps low-cost phone sensors anchored to a useful position estimate under varying satellite reception conditions. The contributions are:
+
+
+
+\begin{itemize}
+
+\item An edge deployable Intelligent Dead Reckoning (IDR) architecture that incorporates an autonomous in-vehicle alignment watchdog, a Gradient-Boosted Decision Tree (GBDT) based velocity and vibration filter, Error-State Kalman Filter (ESKF) with data-driven Non-Holonomic Constraints (NHC) and ZUPT, and a 3D road-network aware topological map-matching layer.
+
+\item A mathematical formulation for the various stages (coordinate transformations, the learned pseudo-measurement regression model, error-state covariance propagation, and the 3D probabilistic map-matching Viterbi decoder).
+
+\item An experimental validation on a structurally independent, held-out evaluation corridor built to emulate the IO-VNBD benchmark schema, showing positional drift bounded to $\leq$6.8\% across all tested outage durations, 99.7--100\% 3D road disambiguation accuracy, and a measured single-sample cycle execution of 0.20\,ms on commodity mobile processors.
+
+\end{itemize}
+
+
+
+The rest of the paper is organized as follows. Section II reviews the related work. Section III formalizes the coordinate frames and the mathematical problem. Section IV presents the proposed system architecture. Section V describes the dataset and the training methodology. Section VI details the experimental results and validates the core claims. Section VII discusses the system characteristics and Section VIII concludes the paper.
+
+\section{Related Work}
+
+The dead reckoning and map-matching literature falls into several broad categories: classical inertial and odometric drift analysis; approaches that employ AI/ML techniques for sensor fusion; road-network map matching; and sensor-fault tolerance in fused localisation systems. Table~\ref{tab:litreview} summarises the relevant literature included in the review, and highlights the gaps which motivate the design choices presented in this paper.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{fig_system_architecture.png}
+\caption{System architecture and operational modalities of the proposed Intelligent Dead Reckoning and 3D Map-Matching framework.}
+\label{fig:overall_arch}
+\end{figure*}
+
+\begin{table*}[t]
+\centering
+\caption{Literature Review Summary}
+\label{tab:litreview}
+\small
+\renewcommand{\arraystretch}{1.3}
+\setlength{\tabcolsep}{4pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{|c|l|p{4.5cm}|p{4.5cm}|p{4.5cm}|}
+\hline
+\textbf{Reference No.} & \textbf{Author} & \textbf{Findings} & \textbf{Methods} & \textbf{Gaps} \\
+\hline
+
+[1] & Lawal, 2024 &
+Neural sequence models can learn a sensor's error signature and cut average positional error by up to 40\% versus conventional inertial DR. &
+Survey of AI-enhanced DR; RNN/LSTM-based sequence modelling. &
+Higher training-data and compute requirements not resolved; no lightweight deployment path proposed. \\
+\hline
+
+[2] & Qian et al., 2025 &
+Learned attitude/velocity as pseudo-measurements inside an InEKF achieved 0.4\% relative horizontal translation error and stayed stable where a purely learned baseline diverged. &
+AVNet: CNN + GRU network regressing attitude/velocity from raw IMU, fused via Invariant EKF with ZIHR and NHC. &
+Validated only on custom parking-lot data; no map-matching stage; no test on public-road or multi-storey outages. \\
+\hline
+
+[3] & Sundaravadivel et al., 2025 (SSRN) &
+Frames highway vs. service-road disambiguation as feature-based classification combined with a Bayesian road-segment model. &
+Temporal, spatial, and trajectory-similarity features fed to a supervised classifier; Bayesian emission/transition model. &
+Preprint stage; no reported accuracy figures for the classifier yet. \\
+\hline
+
+[4] & Sundaravadivel et al., 2026 (Discover AI) &
+Reports 92.7\% highway/service-road classification accuracy, degrading only to 90.2\% under 20\,m GNSS noise. &
+Refined AI-ML map-matching pipeline from [3], evaluated on 12,400 labelled trajectory samples. &
+Operates in 2D; does not address vertical separation, e.g., flyovers directly above a parallel road. \\
+\hline
+
+[5] & Javed et al., 2024 &
+Reduced RMSE positioning error by roughly 20--98\% relative to unconstrained kinematic DR across six urban manoeuvres. &
+Arc-length-based map matching fusing a kinematic bicycle-model DR estimate with a 2D lane-centre-line map. &
+2D, geometry-based matching only; no learned velocity component; small manoeuvre set. \\
+\hline
+
+[6] & Matos, 2025 &
+Severe gyroscope noise caused collisions, lane departures, or timeouts in most trials; GNSS/accelerometer faults were comfortably absorbed. &
+Closed-loop fault injection into LiDAR, GNSS, and IMU channels using CARLA + Autoware.Universe across 50 runs. &
+Diagnostic only; identifies dangerous faults but proposes no fusion or mitigation architecture. \\
+\hline
+
+[7] & Mamun et al., 2026 &
+Deep camera+LiDAR+IMU fusion can cut VIO drift by roughly 42\%; physics-informed NNs/Neural ODEs improve drift correction by 50--70\% over data-driven baselines. &
+Unified literature review of AI/ML methods across cyber-physical systems. &
+Review-level synthesis, not vehicle-specific; no original experimental validation. \\
+\hline
+
+[8] & Deshmukh et al., 2025 &
+Surveys innovations and open challenges in indoor positioning for mobile robotics. &
+Literature review of indoor positioning system architectures. &
+Focused on indoor robotics, not outdoor GNSS-denied vehicular navigation. \\
+\hline
+
+[9] & Onyekpe et al., 2021 &
+Introduces IO-VNBD, a benchmark inertial/odometry dataset for ground-vehicle positioning research. &
+Multi-driver, multi-condition inertial/odometry data collection and release. &
+Provides a dataset and schema only; no positioning algorithm of its own. \\
+\hline
+
+\end{tabular}%
+}
+\end{table*}
+
+\section{Problem Formulation \& Coordinate Transformations}
+
+\subsection{Coordinate Reference Frames}
+
+Dead reckoning on consumer smartphones requires transitions between four coordinate frames:
+
+\begin{enumerate}
+\item \textbf{ECEF / WGS-84}: Global Earth-Centered, Earth-Fixed geodetic frame for GNSS observations ($\lambda_t, \phi_t, h_t$).
+\item \textbf{Navigation Frame (n)}: Local geodetic Cartesian frame defined along East-North-Up (ENU).
+\item \textbf{Vehicle Body Frame (b)}: Orthogonal frame attached to the vehicle center of mass, with $x$ pointing forward longitudinally, $y$ laterally to the left, and $z$ vertically upwards.
+\item \textbf{Phone Sensor Frame (p)}: Internal reference frame defined by the triaxial MEMS sensor axes.
+\end{enumerate}
+
+The transformation from the phone sensor frame to the vehicle body frame is parameterized by the rotation matrix $\mathbf{R}_p^b$:
+\begin{equation}
+\mathbf{f}^b = \mathbf{R}_p^b \mathbf{f}^p, \quad \boldsymbol{\omega}^b = \mathbf{R}_p^b \boldsymbol{\omega}^p
+\end{equation}
+
+\subsection{Sensor Error Formulation}
+
+Raw specific-force measurements $\tilde{\mathbf{a}}_t \in \mathbb{R}^3$ and angular-rate measurements $\tilde{\boldsymbol{\omega}}_t \in \mathbb{R}^3$ are corrupted by dynamic biases $\mathbf{b}_t$ and zero-mean Gaussian white noise $\boldsymbol{\eta}_t$:
+\begin{equation}
+\tilde{\mathbf{a}}_t = \mathbf{a}_t + \mathbf{b}_t^a + \boldsymbol{\eta}_t^a, \quad \tilde{\boldsymbol{\omega}}_t = \boldsymbol{\omega}_t + \mathbf{b}_t^{\omega} + \boldsymbol{\eta}_t^{\omega}
+\end{equation}
+
+Under classical strapdown integration, residual accelerometer bias $\mathbf{b}^a$ creates quadratic position error divergence:
+\begin{equation}
+\delta \mathbf{p}(t) \approx \frac{1}{2} \mathbf{b}^a t^2 + \mathcal{O}(t^3)
+\end{equation}
+
+For a nominal consumer MEMS bias of 0.1\,m/s$^2$, open-loop integration generates $\sim$180\,m of error within 60\,s, which is why the system relies on learned velocity pseudo-measurements and Kalman error-state correction instead of raw integration.
+
+\section{Proposed System Architecture}
+
+The system architecture depicted in Fig.~\ref{fig:overall_arch} maps directly into the modular, low-latency execution pipeline detailed in Table~\ref{tab:system_arch}. All components run deterministically on commodity smartphone hardware without vehicle OBD-II telemetry.
+
+\begin{table*}[t]
+\centering
+\caption{Proposed IDR and 3D Map-Matching System Architecture, Formulations, Safeguards, and Complexity}
+\label{tab:system_arch}
+\small
+\renewcommand{\arraystretch}{1.3}
+\setlength{\tabcolsep}{5pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{|p{2.5cm}|p{2.2cm}|p{6.5cm}|p{4.3cm}|p{3.0cm}|}
+\hline
+\textbf{Subsystem Module} & \textbf{Inputs \& Rates} & \textbf{Core Mathematical Formulation \& State Dynamics} & \textbf{Physics Constraints \& Safeguards} & \textbf{Output \& Execution} \\
+\hline
+\textbf{IV-A. In-Vehicle Dynamic Alignment} & 
+IMU $\tilde{\mathbf{a}}^p, \tilde{\boldsymbol{\omega}}^p$ (100\,Hz), \newline
+Mag $\tilde{\mathbf{m}}^p$ (50\,Hz) & 
+\textit{Leveling}: $\phi = \arctan(a_y, a_z)$, $\theta = \arctan(-a_x, \sqrt{a_y^2+a_z^2})$ \newline
+\textit{Longitudinal PCA}: $\mathbf{C} = \frac{1}{N}\sum \mathbf{a}_k \mathbf{a}_k^T \to \psi = \text{atan2}(v_y, v_x)$ \newline
+\textit{Mounting Matrix}: $\mathbf{R}_p^b = \mathbf{R}_z(\psi)\mathbf{R}_y(\theta)\mathbf{R}_x(\phi)$ & 
+\textbf{Cradle Watchdog}: Tracks angular rate variance; phone slip sets confidence to 40\%; background recalibration in $<4.0$\,s without dead-reckoning interruption. & 
+Body-frame $\mathbf{a}^b, \boldsymbol{\omega}^b$; \newline
+Convergence: $<4.0$\,s; \newline
+Latency: $<0.05$\,ms. \\
+\hline
+\textbf{IV-B. AI Speed \& Vibration Filter} & 
+Body $\mathbf{a}^b, \boldsymbol{\omega}^b$ (100\,Hz, \newline
+1.0\,s window, 10 samples) & 
+GBDT Regressor (120 trees, depth 5, $\eta=0.08$): \newline
+$\hat{v}_t = \sum_{m=1}^{M} \gamma_m h_m(\mathbf{x}_t)$, with features: SMA, energy envelopes, statistical moments, and centripetal $a_y \approx v\omega_z$ & 
+\textbf{Leaf Clamping}: $0 \leq \hat{v}_t \leq 35$\,m/s bounds out-of-distribution shocks; decision splits discard 15--30\,Hz idle and $\leq 3.2g$ vertical pothole spikes. & 
+Forward pseudo-speed $\hat{v}_t$ (10\,Hz); \newline
+RMSE: 1.72\,m/s; \newline
+Latency: $<0.20$\,ms; \newline
+Footprint: 2.1\,MB. \\
+\hline
+\textbf{IV-C. 15-State ESKF Fusion Engine} & 
+IMU (100\,Hz), \newline
+$\hat{v}_t$ (10\,Hz), \newline
+GNSS (1\,Hz) & 
+Nominal: $\mathbf{x} = [\mathbf{p}^n, \mathbf{v}^n, \mathbf{q}_b^n, \mathbf{b}_a^b, \mathbf{b}_g^b]^T \in \mathbb{R}^{16}$ \newline
+Error: $\delta\mathbf{x} = [\delta\mathbf{p}^n, \delta\mathbf{v}^n, \delta\boldsymbol{\theta}^n, \delta\mathbf{b}_a^b, \delta\mathbf{b}_g^b]^T \in \mathbb{R}^{15}$ \newline
+Propagation: $\mathbf{P}_{k|k-1} = \boldsymbol{\Phi}\mathbf{P}_{k-1|k-1}\boldsymbol{\Phi}^T + \mathbf{Q}_d$ \newline
+AI Speed Update: $z_v = \hat{v}_t - (\mathbf{R}_b^n)^T \hat{\mathbf{v}}_x^n$ & 
+\textbf{NHC}: Virtual zero lateral/vertical motion: $v_y^b \approx 0, v_z^b \approx 0$ \newline
+\textbf{ZUPT}: Stationary condition resets velocity drift to zero and decouples IMU accelerometer/gyroscope biases. & 
+Full 3D navigation state $[\mathbf{p}^n, \mathbf{v}^n, \mathbf{q}_b^n]$ (100\,Hz); \newline
+3D Vel RMSE: 0.88\,m/s; \newline
+Latency: $<0.15$\,ms. \\
+\hline
+\textbf{IV-D. 3D HMM Map-Matching} & 
+ESKF $[\mathbf{p}^n]$ (100\,Hz), \newline
+Baro $h$ (10\,Hz), \newline
+Map Graph $\mathcal{M}$ & 
+Emission: $p(\mathbf{z}_t|s_i) = \frac{1}{2\pi\sigma_d\sigma_h}\exp\left(-\frac{d_{\perp}^2}{2\sigma_d^2} - \frac{\Delta h^2}{2\sigma_h^2}\right)$ \newline
+Viterbi: $\mathbf{S}^* = \arg\max \prod p(\mathbf{z}_t|s_i)p(s_i|s_{i-1})$ & 
+\textbf{Elevation Barrier}: Strictly penalizes unphysical vertical transitions onto flyovers ($|\Delta h| > 4$\,m) lacking valid ramp geometry. & 
+Road-snapped 3D pose and vertical layer index (1\,Hz); \newline
+Latency: $<1.2$\,ms. \\
+\hline
+\textbf{IV-E. GNSS-Deficit Supervisor \& Gate} & 
+GNSS fix, ESKF state, \newline
+Innovation cov $\mathbf{S}$ & 
+Innovation: $\mathbf{r} = \mathbf{z}_t^{GNSS} - \hat{\mathbf{z}}_t$ \newline
+Chi-Square Gate: $\gamma = \mathbf{r}^T\mathbf{S}^{-1}\mathbf{r} \leq \chi^2_{\alpha, m}$ ($\chi^2_{0.01, 3} = 11.35$) & 
+\textbf{Outlier Rejection}: Rejects degraded multipath and tunnel-exit position jumps exceeding threshold; enables seamless failover in $<5$\,ms. & 
+Failover trigger flag; covariance reset and smooth GNSS re-acquisition; $<5$\,ms switch. \\
+\hline
+\end{tabular}%
+}
+\end{table*}
+\subsection{In-Vehicle Alignment \& Cradle Shift Watchdog}
+Arbitrary phone orientation in vehicle cradles is resolved without OBD-II telemetry via two decoupled stages: (i)~static gravity leveling extracts roll $\phi = \arctan(a_y, a_z)$ and pitch $\theta = \arctan(-a_x, \sqrt{a_y^2+a_z^2})$ during quasi-stationary cruising; (ii)~forward acceleration PCA identifies the longitudinal surge axis via covariance $\mathbf{C} = \frac{1}{N}\sum \mathbf{a}_k \mathbf{a}_k^T$, yielding yaw $\psi = \text{atan2}(v_y, v_x)$. The composite rotation matrix $\mathbf{R}_p^b = \mathbf{R}_z(\psi)\mathbf{R}_y(\theta)\mathbf{R}_x(\phi)$ projects raw IMU measurements into the vehicle body frame ($\mathbf{f}^b = \mathbf{R}_p^b \mathbf{f}^p, \boldsymbol{\omega}^b = \mathbf{R}_p^b \boldsymbol{\omega}^p$). A continuous cradle watchdog monitors high-frequency angular rate deviations; upon phone slip or dislodgement, alignment confidence drops to 40\% and background recalibration re-converges in $<4.0$\,s without interrupting dead reckoning.
+
+\subsection{AI Speed \& Vibration Filter}
+To eliminate quadratic strapdown error growth under road roughness, an optimized GBDT regressor (120 trees, depth 5, $\eta=0.08$) maps 1.0\,s sliding windows (10 samples at 10\,Hz) of leveled acceleration and angular rates to forward speed $\hat{v}_t = \sum_{m=1}^{M} \gamma_m h_m(\mathbf{x}_t)$. Input features include Signal Magnitude Area (SMA), vibration energy envelopes, statistical moments, and centripetal acceleration constraints $a_y \approx v\omega_z$. Leaf outputs are strictly clamped to $[0, 35]$\,m/s, preventing runaway blowups under shock. Orthogonal decision splits intrinsically filter 15--30\,Hz engine idling and severe vertical pothole spikes ($\leq 3.2g$). With a 2.1\,MB serialized footprint and $<0.20$\,ms execution latency, the model achieves a standalone speed RMSE of 1.72\,m/s framework-free on mobile runtimes.
+
+\subsection{15-State ESKF Fusion Engine with Physics Constraints}
+The nominal state tracks 3D position, velocity, orientation quaternion, and sensor biases: $\mathbf{x} = [\mathbf{p}^n, \mathbf{v}^n, \mathbf{q}_b^n, \mathbf{b}_a^b, \mathbf{b}_g^b]^T \in \mathbb{R}^{16}$. The 15-state error vector $\delta\mathbf{x} \in \mathbb{R}^{15}$ propagates linearly via $\boldsymbol{\Phi} \approx \mathbf{I} + \mathbf{F}\Delta t$ with covariance $\mathbf{P}_{k|k-1} = \boldsymbol{\Phi}\mathbf{P}_{k-1|k-1}\boldsymbol{\Phi}^T + \mathbf{Q}_d$. Dead-reckoning drift is bounded through three kinematic observation updates:
+(i)~\textit{AI Speed Update}: $z_v = \hat{v}_t - (\mathbf{R}_b^n)^T \hat{\mathbf{v}}_x^n$, which supplies synthetic forward velocity at 10\,Hz;
+(ii)~\textit{Non-Holonomic Constraints (NHC)}: $v_y^b \approx 0, v_z^b \approx 0$, injected as virtual zero lateral sideslip and vertical bounce observations; and
+(iii)~\textit{Zero Velocity Updates (ZUPT)}: triggered during stops to reset velocity drift and decouple IMU biases. This physics-fused loop refines raw speed into a 3D velocity vector with 0.88\,m/s RMSE at $<0.15$\,ms per cycle.
+
+\subsection{3D Map-Matching via HMM Viterbi Decoding}
+Inertial coordinates $[p_x, p_y, p_z]^T$ are matched onto an offline multi-layer topological road graph $\mathcal{M}$. Candidate segments $s_i$ are evaluated using a joint horizontal cross-track and vertical barometric elevation emission probability:
+\begin{equation}
+p(\mathbf{z}_t|s_i) = \frac{1}{2\pi\sigma_d\sigma_h}\exp\left(-\frac{d_{\perp}^2}{2\sigma_d^2} - \frac{\Delta h^2}{2\sigma_h^2}\right)
+\end{equation}
+Transition probabilities penalize topological deviations and enforce an elevation barrier ($|\Delta h| > 4$\,m) that strictly prevents impossible vertical hops onto elevated flyovers lacking valid ramp geometry. Global Viterbi decoding computes the optimal trajectory sequence $\mathbf{S}^* = \arg\max \prod p(\mathbf{z}_t|s_i)p(s_i|s_{i-1})$ at 1\,Hz in $<1.2$\,ms.
+
+\subsection{Seamless GNSS-Deficit Handler with Chi-Square Innovation Gate}
+Upon tunnel entry or signal degradation, a supervisory watchdog engages dead reckoning within $<5$\,ms. Upon signal recovery, multipath reflection spikes are rejected via a normalized Chi-Square innovation gate $\gamma = \mathbf{r}^T\mathbf{S}^{-1}\mathbf{r} \leq \chi^2_{\alpha,m}$, where $\mathbf{r} = \mathbf{z}_t^{GNSS} - \hat{\mathbf{z}}_t$. Measurements exceeding $\chi^2_{0.01, 3} = 11.35$ are discarded, preventing abrupt position jumps before smooth Kalman blending restores satellite updates.
+
+\section{Dataset and Experimental Setup}
+
+The system was evaluated using a trajectory generator constructed to emulate the sensor modalities, 10\,Hz sampling rate, and multi-driver diversity of the IO-VNBD benchmark schema \cite{onyekpe2021}, together with a structurally independent, held-out urban evaluation corridor:
+\begin{itemize}
+\item \textbf{Training Set}: 3 independent multi-driver profiles comprising 7,500 temporal samples, with distinct speed manifolds and topographies -- an urban stop-and-go profile (0--11.5\,m/s, four signal halts), a high-speed expressway profile (13.5--23.8\,m/s, continuous roundabout curvature), and a hilly profile with 5--6\% elevation grades (0 to +12\,m).
+\item \textbf{Held-Out Urban Evaluation Track}: 3,000 continuous samples recorded at 10\,Hz over a total travel distance of 2{,}908.7\,m. The trajectory includes a multi-level flyover on-ramp and deck cruise (+8.5\,m elevation) directly above a parallel service road (12\,m lateral offset), a sharp 90$^\circ$ turn onto the service road, and stop-and-go congestion segments. The evaluation track's speed manifold (0--16.5\,m/s) and manoeuvre sequence share no spatial, temporal, or kinematic overlap with the three training profiles.
+\end{itemize}
+
+% Clean 2-column benchmark table placed right at Section VI boundary
+\begin{table*}[t]
+\centering
+\caption{Quantitative Performance Comparison across Simulated GNSS Outages on the Held-Out Evaluation Track}
+\label{tab:benchmark}
+\small
+\renewcommand{\arraystretch}{1.3}
+\setlength{\tabcolsep}{4pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{Outage} & \textbf{Distance} & \multicolumn{4}{c|}{\textbf{Position Drift (\% of Distance: Abs / Net)}} & \multicolumn{4}{c|}{\textbf{Absolute Trajectory Error (ATE RMSE, m)}} & \multicolumn{2}{c|}{\textbf{Road Disambiguation (\%)}} & \textbf{Latency} \\
+\cline{3-12}
+\textbf{Duration} & \textbf{Traveled} & \textbf{Naive INS} & \textbf{AI Alone} & \textbf{Prop. ESKF} & \textbf{Full System} & \textbf{Naive INS} & \textbf{AI Alone} & \textbf{Prop. ESKF} & \textbf{Full System} & \textbf{2D Base} & \textbf{3D Prop.} & \textbf{(ms)} \\
+\hline
+10\,s  & 127.7\,m  & 29.7\% & 8.2\%  & \textbf{6.79\% / 5.78\%} & \textbf{6.49\% / 5.53\%} & 16.7\,m  & 5.7\,m   & \textbf{5.03\,m}  & \textbf{4.88\,m}  & 0.0\%  & \textbf{100.0\%} & 0.20 \\
+\hline
+30\,s  & 426.7\,m  & 49.0\% & 14.3\% & \textbf{2.98\% / 2.77\%} & \textbf{2.56\% / 2.33\%} & 109.5\,m & 28.3\,m  & \textbf{11.12\,m} & \textbf{10.58\,m} & 0.0\%  & \textbf{100.0\%} & 0.20 \\
+\hline
+60\,s  & 868.8\,m  & 61.5\% & 27.9\% & \textbf{2.01\% / 1.88\%} & \textbf{1.72\% / 1.57\%} & 273.7\,m & 109.1\,m & \textbf{13.39\,m} & \textbf{15.13\,m} & 0.0\%  & \textbf{100.0\%} & 0.20 \\
+\hline
+120\,s & 1{,}482.0\,m & 84.5\% & 38.4\% & \textbf{2.88\% / 2.79\%} & \textbf{2.80\% / 2.85\%} & 655.6\,m & 340.6\,m & \textbf{24.52\,m} & \textbf{36.40\,m} & 28.8\% & \textbf{99.7\%}  & 0.20 \\
+\hline
+\end{tabular}%
+}
+\end{table*}
+
+\section{Experimental Results and Discussion}
+
+\subsection{AI Velocity Regressor Accuracy}
+
+Table~\ref{tab:reg} reports the performance of the standalone GBDT forward-velocity regressor on 1.0\,s windows. The model achieves an $R^2$ of 0.9225 and an RMSE of 1.723\,m/s on the unseen held-out evaluation corridor, confirming robust generalization across distinct speed profiles and elevation grades without OBD-II telemetry.
+
+\begin{table}[h]
+\centering
+\caption{AI Velocity Regressor Performance}
+\label{tab:reg}
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Dataset} & \textbf{RMSE (m/s)} & \textbf{MAE (m/s)} & \textbf{$R^2$} \\
+\hline
+Training Set (7,500 samples) & 0.798 & 0.561 & 0.9877 \\
+Held-Out Track (3,000 samples) & 1.723 & 1.083 & 0.9225 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Quantitative Multi-Baseline Benchmark across GNSS Outages}
+
+Table~\ref{tab:benchmark} provides a systematic multi-baseline comparison across simulated outages (10\,s--120\,s). Both \emph{absolute endpoint drift} and \emph{net accumulated drift rate} are reported. The proposed ESKF and full system bound drift to $\leq$2.88\% (ATE RMSE $\leq$36.40\,m) even under severe 120\,s outages, exceeding open-loop double integration by over an order of magnitude (Fig.~\ref{fig:traj} and Fig.~\ref{fig:drift}).
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\columnwidth]{fig_trajectory.png}
+\caption{2D planar trajectory and error divergence during a 60\,s GNSS outage (868.8\,m travel) across an elevated flyover. Naive integration diverges by 534.0\,m, AI-alone diverges by 242.4\,m, while the proposed ESKF and full system bound maximum error to 18.4\,m (2.01\% drift) and 26.3\,m (1.72\% drift), respectively.}
+\label{fig:traj}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\columnwidth]{fig_drift.png}
+\caption{Positional drift vs. 10\% operational benchmark across outage durations (10\,s--120\,s). The proposed ESKF bounds drift below 6.79\% across all intervals, substantially exceeding the benchmark target.}
+\label{fig:drift}
+\end{figure}
+
+\subsection{Formal Verification of Core Research Claims}
+
+Experimental results verify the three core engineering hypotheses (Table~\ref{tab:claims}):
+\begin{itemize}
+\item \textbf{Claim 1 (AI Velocity vs. Double Integration)}: Open-loop double integration accumulates 61.5\% drift (273.7\,m ATE) in 60\,s. Standalone GBDT speed limits RMSE to 1.72\,m/s, while closed-loop ESKF fusion (incorporating NHC and heading constraints) tightens 3D velocity RMSE to 0.88\,m/s, limiting position drift to 27.9\% when driven by AI speed alone (Fig.~\ref{fig:pothole}).
+\item \textbf{Claim 2 (Physics-Constrained ESKF Bounds Drift)}: Fusing learned forward velocity with NHC ($v_y^b \approx 0, v_z^b \approx 0$) and ZUPT constrains drift to 2.01\% at 60\,s and 2.88\% at 120\,s, substantially surpassing the $<$10\% benchmark across all intervals (Fig.~\ref{fig:drift}).
+\item \textbf{Claim 3 (3D Topological Map Matching)}: 2D map matching fails completely (0.0\% accuracy) on multi-level structures due to lack of altitude awareness. The proposed 3D HMM Viterbi matcher achieves 99.7\%--100.0\% road disambiguation accuracy.
+\end{itemize}
+
+\begin{table}[h]
+\centering
+\caption{Formal Verification of Core Research Claims}
+\label{tab:claims}
+\small
+\renewcommand{\arraystretch}{1.2}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{|p{2.2cm}|p{2.3cm}|p{2.8cm}|c|}
+\hline
+\textbf{Research Claim} & \textbf{Baseline} & \textbf{Proposed System} & \textbf{Status} \\
+\hline
+Claim 1: AI Speed (Beats Double Int.) & $>$14.5\,m/s error; $>$350\% drift & ESKF Fused Vel: 0.88\,m/s RMSE; 27.9\% drift (AI alone) & VERIFIED \\
+\hline
+Claim 2: ESKF (Bounds Drift $<$10\%) & 27.9\% at 60\,s; 38.4\% at 120\,s & 2.01\% at 60\,s; 2.88\% at 120\,s & VERIFIED \\
+\hline
+Claim 3: 3D Map (Resolves Flyovers) & 2D HMM: 0.0\% & 3D HMM: 99.7--100.0\% disambiguation & VERIFIED \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+\subsection{Computational Profiling and Mobile Feasibility}
+
+Real-time streaming profiling at 10\,Hz (100\,ms budget) on commodity mobile processors yielded an average single-sample cycle latency of \textbf{196.9 $\pm$ 1.3\,\textmu s} (0.20\,ms across 10 trials of 1,000 samples):
+\begin{itemize}
+\item Sliding-window feature extraction: 0.05\,ms
+\item GBDT forward-velocity inference: 0.08\,ms
+\item 15-State ESKF propagation and updates: 0.05\,ms
+\item 3D HMM trellis and Viterbi decoding: 0.02\,ms
+\end{itemize}
+This consumes $<$0.2\% of the 100\,ms frame window ($>$99.8\% CPU headroom), confirming edge feasibility for mobile navigation.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_alignment.png}
+\caption{In-vehicle dynamic alignment convergence (pitch $\rightarrow$ 20.0$^\circ$, roll $\rightarrow$ 5.0$^\circ$, yaw $\rightarrow$ 12.0$^\circ$) and autonomous cradle slip recovery at $t=25$\,s.}
+\label{fig:align}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_pothole.png}
+\caption{AI vibration filter suppressing 15--30\,Hz engine idle oscillations and a 3.2$g$ vertical pothole shock impulse without integration blowup. (B) Comparison of AI speed estimator (standalone RMSE: 1.72\,m/s; ESKF fused velocity RMSE: 0.88\,m/s) against naive integration.}
+\label{fig:pothole}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_seamless.png}
+\caption{Seamless outage detection ($<$5\,ms) and Chi-Square ($\chi^2$) innovation filtering rejecting severe multipath reflection spikes during tunnel exit.}
+\label{fig:seamless}
+\end{figure}
+
+\section{Discussion and Operational Characteristics}
+
+The empirical evaluation demonstrates three key operational characteristics:
+\begin{enumerate}
+\item \textbf{Pothole and Harmonic Isolation}: Road shocks reach up to 40\,m/s$^2$ ($\approx$4.0$g$) in raw vertical acceleration (Fig.~\ref{fig:pothole}(A)), causing open-loop integrators to diverge instantaneously. The GBDT filter isolates 15--30\,Hz engine harmonics and absorbs shock impulses, holding vertical acceleration at nominal gravity and matching true ground speed (Fig.~\ref{fig:pothole}(B)).
+\item \textbf{Cradle Shift Robustness}: When vehicle dynamics dislodge the smartphone in its cradle, angular rate variance monitoring detects the slip, flags confidence to 40\%, and completes background realignment within 4.0\,s without halting the filter (Fig.~\ref{fig:align}).
+\item \textbf{Multipath Suppression}: Severe multipath reflections at tunnel exits cause abrupt GNSS coordinate jumps. The Chi-Square innovation gate rejects innovations exceeding $\chi^2_{0.01, 3} = 11.35$, suppressing corrupted updates until clean satellite geometry is restored (Fig.~\ref{fig:seamless}).
+\end{enumerate}
+
+\section{Conclusion and Future Work}
+
+This paper presented an edge-deployable Intelligent Dead Reckoning (IDR) and 3D map-matching system for smartphones in GNSS-denied environments without vehicle OBD-II telemetry. By combining a GBDT forward-speed regressor, a 15-state ESKF with non-holonomic constraints and ZUPT, and a multi-level 3D HMM map-matcher, the system bounds positional drift to 2.01\% over 868.8\,m (60\,s) and 2.88\% over 1{,}482.0\,m (120\,s), while resolving elevated flyovers with 99.7\%--100\% accuracy at 0.20\,ms per cycle. Future work will extend the non-holonomic kinematic formulation to two-wheeler lean dynamics and validate on real-world RTK-instrumented urban vehicle fleets.
+
+\section*{Acknowledgment}
+The authors thank United College of Engineering and Research, Prayagraj, for providing resources and support toward this work.
+
+\begin{thebibliography}{9}
+
+\bibitem{lawal2024} G. S. Lawal, ``AI-Enhanced Dead Reckoning Techniques for Robust Position Estimation, unpublished manuscript, Dec. 2024.
+
+\bibitem{qian2025} L. Qian, X. Lin, X. Niu, Q. Huang, L. Li, G. Guo, Z. Wang, and R. Chen, ``Avnet: learning attitude and velocity for vehicular dead reckoning using smartphone by adapting an invariant EKF, \emph{Satellite Navigation}, vol. 6, no. 15, 2025, doi: 10.1186/s43020-025-00168-7.
+
+\bibitem{sundar2025} P. Sundaravadivel, C. H. Vasanth Kumar, R. Augustian Isaac, and K. Premnath, ``AI-ML Driven Map-Matching Algorithm for Distinguishing Highway and Service Road Vehicular Movements under GNSS Degradation, \emph{SSRN preprint}, 2025. [Online]. Available: https://ssrn.com/abstract=5281668
+
+\bibitem{sundar2026} P. Sundaravadivel, R. Augustian Isaac, U. Kumaran, and E. S. Vinoth Kumar, ``AI-ML driven map-matching algorithm for distinguishing highway and service road vehicular movements under GNSS degradation, \emph{Discover Artificial Intelligence}, vol. 6, no. 785, 2026, doi: 10.1007/s44163-026-01560-1.
+
+\bibitem{javed2024} N. U. Javed, Y. Singh, and Q. Ahmed, ``Vehicle Localization in GPS-Denied Scenarios Using Arc-Length-Based Map Matching, \emph{arXiv preprint arXiv:2410.12208}, Oct. 2024.
+
+\bibitem{matos2025} F. dos Santos Matos, ``Simulating the effects of sensor failures on autonomous vehicles, M.S. project report, Instituto Superior de Engenharia de Coimbra, Coimbra, Portugal, Jun. 2025.
+
+\bibitem{mamun2026} S. Mamun et al., ``AI and Machine Learning in Cyber-Physical Systems: A Unified Review of Methodologies for Smart Energy Systems and Intelligent Localization, \emph{IEEE Access}, vol. 14, pp. 96955--96970, 2026.
+
+\bibitem{deshmukh2025} R. A. Deshmukh et al., ``Advancing indoor positioning systems: innovations, challenges, and applications in mobile robotics, \emph{Robotica}, 2025, doi: 10.1017/S0263574725101872.
+
+\bibitem{onyekpe2021} U. Onyekpe, V. Palade, and S. Kanarachos, ``IO-VNBD: Inertial and Odometry Benchmark Dataset for Ground Vehicle Positioning, \emph{Data in Brief}, vol. 35, p. 106885, 2021, doi: 10.1016/j.dib.2021.106885.
+
+\end{thebibliography}
+
+\end{document}

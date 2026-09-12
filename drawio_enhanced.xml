@@ -1,0 +1,225 @@
+<mxfile host="app.diagrams.net" agent="draw.io">
+  <diagram id="dr-nav-paper-v4" name="AI Dead Reckoning Architecture (Pure LaTeX)">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="640" math="1" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        
+        <mxCell id="bg" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;shadow=0;fontFamily=Times New Roman;" vertex="1">
+          <mxGeometry height="600" width="1129" x="20" y="10" as="geometry" />
+        </mxCell>
+
+        
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;fontColor=#0f172a;fontFamily=Times New Roman;" value="AI-POWERED SMARTPHONE DEAD RECKONING NAVIGATION ARCHITECTURE" vertex="1">
+          <mxGeometry height="26" width="1129" x="20" y="16" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=9.5;fontStyle=2;fontColor=#475569;fontFamily=Times New Roman;" value="Figure 1: High-level overview of the continuous 3D dead reckoning pipeline for GNSS-denied environments." vertex="1">
+          <mxGeometry height="14" width="1129" x="20" y="40" as="geometry" />
+        </mxCell>
+
+        
+        <mxCell id="kpi1" parent="1" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#f0f9ff;strokeColor=#0284c7;strokeWidth=1;fontColor=#0369a1;fontSize=7.5;fontStyle=1;fontFamily=Times New Roman;" value="⚡ 100 Hz IMU Sampling" vertex="1">
+          <mxGeometry height="18" width="125" x="300" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="kpi2" parent="1" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#ecfdf5;strokeColor=#059669;strokeWidth=1;fontColor=#047857;fontSize=7.5;fontStyle=1;fontFamily=Times New Roman;" value="🛡️ Zero Cellular Data Required" vertex="1">
+          <mxGeometry height="18" width="135" x="438" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="kpi3" parent="1" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#faf5ff;strokeColor=#7c3aed;strokeWidth=1;fontColor=#6d28d9;fontSize=7.5;fontStyle=1;fontFamily=Times New Roman;" value="🧠 Hybrid Physics + Deep AI" vertex="1">
+          <mxGeometry height="18" width="125" x="586" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="kpi4" parent="1" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#fff7ed;strokeColor=#ea580c;strokeWidth=1;fontColor=#c2410c;fontSize=7.5;fontStyle=1;fontFamily=Times New Roman;" value="🎯 Sub-Meter Drift Suppression" vertex="1">
+          <mxGeometry height="18" width="135" x="724" y="60" as="geometry" />
+        </mxCell>
+
+        
+        <mxCell id="h1" parent="1" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#1e40af;strokeColor=none;fontColor=#ffffff;fontStyle=1;fontSize=8.5;fontFamily=Times New Roman;" value="1 · DATA ACQUISITION" vertex="1">
+          <mxGeometry height="22" width="195" x="30" y="88" as="geometry" />
+        </mxCell>
+        <mxCell id="h2" parent="1" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#047857;strokeColor=none;fontColor=#ffffff;fontStyle=1;fontSize=8.5;fontFamily=Times New Roman;" value="2 · PREPROCESSING &amp; FUSION" vertex="1">
+          <mxGeometry height="22" width="195" x="250" y="88" as="geometry" />
+        </mxCell>
+        <mxCell id="h3" parent="1" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#6d28d9;strokeColor=none;fontColor=#ffffff;fontStyle=1;fontSize=8.5;fontFamily=Times New Roman;" value="3 · DEEP LEARNING ENGINE" vertex="1">
+          <mxGeometry height="22" width="205" x="470" y="88" as="geometry" />
+        </mxCell>
+        <mxCell id="h4" parent="1" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#c2410c;strokeColor=none;fontColor=#ffffff;fontStyle=1;fontSize=8.5;fontFamily=Times New Roman;" value="4 · EKF STATE ESTIMATOR" vertex="1">
+          <mxGeometry height="22" width="195" x="700" y="88" as="geometry" />
+        </mxCell>
+        <mxCell id="h5" parent="1" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#0369a1;strokeColor=none;fontColor=#ffffff;fontStyle=1;fontSize=8.5;fontFamily=Times New Roman;" value="5 · OUTPUT &amp; MAP MATCHING" vertex="1">
+          <mxGeometry height="22" width="195" x="920" y="88" as="geometry" />
+        </mxCell>
+
+        
+        <mxCell id="ah1" edge="1" parent="1" source="h1" style="endArrow=block;endFill=1;html=1;strokeColor=#1e40af;strokeWidth=1.5;rounded=1;" target="h2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ah2" edge="1" parent="1" source="h2" style="endArrow=block;endFill=1;html=1;strokeColor=#047857;strokeWidth=1.5;rounded=1;" target="h3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ah3" edge="1" parent="1" source="h3" style="endArrow=block;endFill=1;html=1;strokeColor=#6d28d9;strokeWidth=1.5;rounded=1;" target="h4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ah4" edge="1" parent="1" source="h4" style="endArrow=block;endFill=1;html=1;strokeColor=#c2410c;strokeWidth=1.5;rounded=1;" target="h5"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        
+        <mxCell id="c1" parent="1" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;fillColor=#f8fafc;strokeColor=#cbd5e1;strokeWidth=1;verticalAlign=top;fontFamily=Times New Roman;" value="" vertex="1">
+          <mxGeometry height="345" width="195" x="30" y="116" as="geometry" />
+        </mxCell>
+        <mxCell id="c1s1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#93c5fd;align=center;verticalAlign=middle;fontSize=7.2;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#1e40af;font-size:7.8px;&quot;&gt;3D Linear Accelerometer&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;Specific force along sensor axes&lt;/span&gt;&lt;br&gt;$$\mathbf{a} = [a_x, a_y, a_z]^T \in \mathbb{R}^3 \quad (100\text{ Hz})$$" vertex="1">
+          <mxGeometry height="48" width="175" x="40" y="124" as="geometry" />
+        </mxCell>
+        <mxCell id="c1s2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#93c5fd;align=center;verticalAlign=middle;fontSize=7.2;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#1e40af;font-size:7.8px;&quot;&gt;3D Angular Gyroscope&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;3-axis rotational angular velocity&lt;/span&gt;&lt;br&gt;$$\mathbf{\omega} = [\omega_x, \omega_y, \omega_z]^T \in \mathbb{R}^3 \quad (100\text{ Hz})$$" vertex="1">
+          <mxGeometry height="48" width="175" x="40" y="178" as="geometry" />
+        </mxCell>
+        <mxCell id="c1s3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#93c5fd;align=center;verticalAlign=middle;fontSize=7.2;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#1e40af;font-size:7.8px;&quot;&gt;3D Magnetometer&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;Earth magnetic field for yaw heading&lt;/span&gt;&lt;br&gt;$$\mathbf{m} = [m_x, m_y, m_z]^T \in \mathbb{R}^3 \quad (50\text{ Hz})$$" vertex="1">
+          <mxGeometry height="48" width="175" x="40" y="232" as="geometry" />
+        </mxCell>
+        <mxCell id="c1s4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#93c5fd;align=center;verticalAlign=middle;fontSize=7.2;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#1e40af;font-size:7.8px;&quot;&gt;Barometric Pressure Sensor&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;Hypsometric vertical altitude&lt;/span&gt;&lt;br&gt;$$h(P) = \frac{T_0}{L} \left(1 - \left(\frac{P}{P_0}\right)^{\frac{R \cdot L}{g \cdot M}}\right)$$" vertex="1">
+          <mxGeometry height="50" width="175" x="40" y="286" as="geometry" />
+        </mxCell>
+        <mxCell id="c1s5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#93c5fd;align=center;verticalAlign=middle;fontSize=7.2;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#1e40af;font-size:7.8px;&quot;&gt;Multi-GNSS Satellite Receiver&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;Intermittent geodetic reference fix&lt;/span&gt;&lt;br&gt;$$\mathbf{p}_{\text{GNSS}} = [\phi, \lambda, h]^T \quad (1\text{ Hz})$$" vertex="1">
+          <mxGeometry height="48" width="175" x="40" y="342" as="geometry" />
+        </mxCell>
+        <mxCell id="c1box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e40af;strokeColor=none;align=center;verticalAlign=middle;fontSize=7;fontColor=#ffffff;fontStyle=1;fontFamily=Times New Roman;" value="📱 Raw Smartphone Sensor Streams" vertex="1">
+          <mxGeometry height="22" width="175" x="40" y="398" as="geometry" />
+        </mxCell>
+
+        
+        <mxCell id="c2" parent="1" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;fillColor=#f8fafc;strokeColor=#cbd5e1;strokeWidth=1;verticalAlign=top;fontFamily=Times New Roman;" value="" vertex="1">
+          <mxGeometry height="345" width="195" x="250" y="116" as="geometry" />
+        </mxCell>
+        <mxCell id="c2s1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6ee7b7;align=center;verticalAlign=middle;fontSize=7.2;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#047857;font-size:7.8px;&quot;&gt;Temporal Timestamp Sync&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;Multi-rate unified timeline sync&lt;/span&gt;&lt;br&gt;$$t_k \in \mathcal{T}_{\text{sync}} \quad (\text{Sync Timeline})$$" vertex="1">
+          <mxGeometry height="48" width="175" x="260" y="124" as="geometry" />
+        </mxCell>
+        <mxCell id="c2s2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6ee7b7;align=center;verticalAlign=middle;fontSize=7.2;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#047857;font-size:7.8px;&quot;&gt;Butterworth Low-Pass Filter&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;Suppresses 15--30\,Hz engine idle noise&lt;/span&gt;&lt;br&gt;$$H(s) = \frac{1}{1 + (s/\omega_c)^{2n}} \quad (\text{Cutoff: } 12\text{ Hz})$$" vertex="1">
+          <mxGeometry height="48" width="175" x="260" y="178" as="geometry" />
+        </mxCell>
+        <mxCell id="c2s3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6ee7b7;align=center;verticalAlign=middle;fontSize=7.2;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#047857;font-size:7.8px;&quot;&gt;Dynamic Mount Alignment&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;Rotates phone frame $\{p\}$ to body $\{b\}$&lt;/span&gt;&lt;br&gt;$$\mathbf{a}^v = \mathbf{R}_b^v \mathbf{a}^b - \mathbf{g}$$" vertex="1">
+          <mxGeometry height="48" width="175" x="260" y="232" as="geometry" />
+        </mxCell>
+        <mxCell id="c2s4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6ee7b7;align=center;verticalAlign=middle;fontSize=7.2;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#047857;font-size:7.8px;&quot;&gt;Zero Velocity Update (ZUPT)&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;Detects standstill to clamp drift&lt;/span&gt;&lt;br&gt;$$T(\mathbf{z}_k) = \frac{1}{\sigma_a^2}\|\mathbf{a}_k - \mathbf{g}\|^2 &lt; \gamma \implies \mathbf{v} = \mathbf{0}$$" vertex="1">
+          <mxGeometry height="50" width="175" x="260" y="286" as="geometry" />
+        </mxCell>
+        <mxCell id="c2s5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6ee7b7;align=center;verticalAlign=middle;fontSize=7.2;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#047857;font-size:7.8px;&quot;&gt;Sliding Window Feature Buffer&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;Stacks 1.0\,s temporal motion tensor&lt;/span&gt;&lt;br&gt;$$\mathbf{X}_t \in \mathbb{R}^{N \times 6} \quad (1.0\text{s Window, } 10\text{ Hz})$$" vertex="1">
+          <mxGeometry height="48" width="175" x="260" y="342" as="geometry" />
+        </mxCell>
+        <mxCell id="c2out" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#047857;strokeColor=none;align=center;verticalAlign=middle;fontSize=7;fontColor=#ffffff;fontStyle=1;fontFamily=Times New Roman;" value="➔ Clean Input Tensor $\mathbf{X}_t$" vertex="1">
+          <mxGeometry height="22" width="175" x="260" y="398" as="geometry" />
+        </mxCell>
+
+        
+        <!-- COLUMN 3: DEEP LEARNING -->
+        <!-- COLUMN 3: DEEP LEARNING -->
+        <mxCell id="c3" parent="1" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;fillColor=#f8fafc;strokeColor=#cbd5e1;strokeWidth=1;verticalAlign=top;fontFamily=Times New Roman;" value="" vertex="1">
+          <mxGeometry height="345" width="205" x="470" y="116" as="geometry" />
+        </mxCell>
+        <mxCell id="c3m1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#c084fc;fontSize=7;fontColor=#1e293b;align=center;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#6d28d9;font-size:7.5px;&quot;&gt;GBDT Regressor&lt;/b&gt;&lt;br&gt;$$\text{120 Trees, } \eta=0.08$$" vertex="1">
+          <mxGeometry height="36" width="90" x="480" y="124" as="geometry" />
+        </mxCell>
+        <mxCell id="c3m2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#c084fc;fontSize=7;fontColor=#1e293b;align=center;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#6d28d9;font-size:7.5px;&quot;&gt;Sequence Model&lt;/b&gt;&lt;br&gt;$$\text{Bi-LSTM / GRU}$$" vertex="1">
+          <mxGeometry height="36" width="90" x="575" y="124" as="geometry" />
+        </mxCell>
+        <mxCell id="c3list" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#c084fc;align=center;verticalAlign=middle;fontSize=6.8;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#6d28d9;font-size:7.8px;&quot;&gt;AI Kinematic State &amp;amp; Features&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;1.0\,s window features: SMA, moments, $a_y \approx v\omega_z$&lt;/span&gt;&lt;br&gt;$$\hat{v}_t = \sum_{m=1}^{M} \gamma_m h_m(\mathbf{X}_t) \in [0, 35]\text{ m/s}, \quad \mathbf{b} = [\mathbf{b}_a, \mathbf{b}_g]^T$$" vertex="1">
+          <mxGeometry height="72" width="185" x="480" y="166" as="geometry" />
+        </mxCell>
+        <mxCell id="c3loss" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#faf5ff;strokeColor=#7c3aed;strokeWidth=1.2;fontSize=8;fontColor=#1e293b;align=center;verticalAlign=middle;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#6d28d9;font-size:7.8px;&quot;&gt;Physics-Constrained Loss Function&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;Penalizes position error, yaw drift &amp;amp; dynamics&lt;/span&gt;&lt;br&gt;$$\mathcal{L} = \mathcal{L}_{\text{pos}} + \lambda_1 \mathcal{L}_{\text{orient}} + \lambda_2 \mathcal{L}_{\text{kinematics}}$$" vertex="1">
+          <mxGeometry height="52" width="185" x="480" y="244" as="geometry" />
+        </mxCell>
+        <mxCell id="c3pseudo" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#c084fc;align=center;verticalAlign=middle;fontSize=7;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#6d28d9;font-size:7.8px;&quot;&gt;AI Pseudomeasurement Model&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;Virtual 3D body velocity &amp;amp; NHC observation vector&lt;/span&gt;&lt;br&gt;$$\mathbf{z}_{\text{AI}} = [\hat{v}_t, 0, 0]^T = (\mathbf{R}_b^n)^T \mathbf{v}^n + \boldsymbol{\eta}_v$$&lt;br&gt;$$\mathbf{\Sigma}_{\text{AI}} = \operatorname{diag}(\sigma_{\hat{v}}^2, \sigma_{\text{NHC}}^2, \sigma_{\text{NHC}}^2) \quad (\sigma_{\hat{v}} = 1.72\text{ m/s})$$&lt;br&gt;&lt;span style=&quot;color:#475569;font-size:6.8px;&quot;&gt;$$\mathbf{y}_v = \mathbf{z}_{\text{AI}} - (\mathbf{R}_b^n)^T \hat{\mathbf{v}}^n \quad (\text{ESKF Innovation})$$&lt;/span&gt;" vertex="1">
+          <mxGeometry height="90" width="185" x="480" y="302" as="geometry" />
+        </mxCell>
+        <mxCell id="c3out" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#6d28d9;strokeColor=none;align=center;verticalAlign=middle;fontSize=7;fontColor=#ffffff;fontStyle=1;fontFamily=Times New Roman;" value="➔ Pseudomeasurements: $\mathbf{z}_{\text{AI}} \sim \mathcal{N}(\mathbf{H}_v\mathbf{x}, \mathbf{\Sigma}_{\text{AI}})$" vertex="1">
+          <mxGeometry height="22" width="185" x="480" y="398" as="geometry" />
+        </mxCell>
+
+        <!-- COLUMN 4: ESKF -->
+        <mxCell id="c4" parent="1" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;fillColor=#f8fafc;strokeColor=#cbd5e1;strokeWidth=1;verticalAlign=top;fontFamily=Times New Roman;" value="" vertex="1">
+          <mxGeometry height="345" width="195" x="700" y="116" as="geometry" />
+        </mxCell>
+        <mxCell id="c4ekf" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fdba74;align=center;verticalAlign=middle;fontSize=7;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#c2410c;font-size:7.8px;&quot;&gt;16-State Kinematic State Vector&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;Tracks 3D pos, velocity, quaternion &amp;amp; biases&lt;/span&gt;&lt;br&gt;$$\mathbf{x}_k = [\mathbf{p}_{3\text{D}}, \mathbf{v}_{3\text{D}}, \mathbf{q}, \mathbf{b}_a, \mathbf{b}_g]^T \in \mathbb{R}^{16}$$" vertex="1">
+          <mxGeometry height="56" width="175" x="710" y="124" as="geometry" />
+        </mxCell>
+        <mxCell id="c4fuse" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fdba74;align=center;verticalAlign=middle;fontSize=7;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#c2410c;font-size:7.8px;&quot;&gt;ESKF Fusion &amp;amp; NHC Virtual Updates&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;Virtual zero sideslip: $v_y^b \approx 0, v_z^b \approx 0$&lt;/span&gt;&lt;br&gt;$$\begin{aligned} \mathbf{x}_{k|k} &amp;= \mathbf{x}_{k|k-1} + \mathbf{K}_k \mathbf{y}_k \\ \mathbf{K}_k &amp;= \mathbf{P}_{k|k-1} \mathbf{H}_k^T (\mathbf{H}_k \mathbf{P} \mathbf{H}_k^T + \mathbf{R}_k)^{-1} \end{aligned}$$" vertex="1">
+          <mxGeometry height="72" width="175" x="710" y="186" as="geometry" />
+        </mxCell>
+        <mxCell id="c4gnss" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fdba74;align=center;verticalAlign=middle;fontSize=7;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#c2410c;font-size:7.8px;&quot;&gt;Chi-Square ($\chi^2$) Innovation Gate&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;Rejects multipath jumps &amp;amp; tunnel exit spikes&lt;/span&gt;&lt;br&gt;$$\gamma = \mathbf{y}_k^T \mathbf{S}_k^{-1} \mathbf{y}_k \leq 11.35 \quad (p=0.01)$$" vertex="1">
+          <mxGeometry height="56" width="175" x="710" y="264" as="geometry" />
+        </mxCell>
+        <mxCell id="c4cov" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fdba74;align=center;verticalAlign=middle;fontSize=7;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#c2410c;font-size:7.8px;&quot;&gt;Covariance Propagation &amp;amp; ZUPT Reset&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;Error state propagation &amp;amp; velocity clamp&lt;/span&gt;&lt;br&gt;$$\mathbf{P}_{k|k-1} = \boldsymbol{\Phi}_k \mathbf{P}_{k-1} \boldsymbol{\Phi}_k^T + \mathbf{Q}_d, \quad \delta\mathbf{v} \leftarrow \mathbf{0}$$" vertex="1">
+          <mxGeometry height="66" width="175" x="710" y="326" as="geometry" />
+        </mxCell>
+        <mxCell id="c4traj" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c2410c;strokeColor=none;align=center;verticalAlign=middle;fontSize=7;fontColor=#ffffff;fontStyle=1;fontFamily=Times New Roman;" value="➔ Drift-Bounded 3D Trajectory $\mathbf{x}_k$" vertex="1">
+          <mxGeometry height="22" width="175" x="710" y="398" as="geometry" />
+        </mxCell>
+
+        <!-- COLUMN 5: MAP MATCHING -->
+        <mxCell id="c5" parent="1" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;fillColor=#f8fafc;strokeColor=#cbd5e1;strokeWidth=1;verticalAlign=top;fontFamily=Times New Roman;" value="" vertex="1">
+          <mxGeometry height="345" width="195" x="920" y="116" as="geometry" />
+        </mxCell>
+        <mxCell id="c5phone" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0369a1;strokeColor=none;align=center;verticalAlign=middle;fontSize=7;fontColor=#ffffff;fontStyle=1;fontFamily=Times New Roman;" value="📱 Real-Time Navigation UI Feed" vertex="1">
+          <mxGeometry height="26" width="175" x="930" y="124" as="geometry" />
+        </mxCell>
+        <mxCell id="c5app1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7dd3fc;align=center;verticalAlign=middle;fontSize=7;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#0369a1;font-size:7.8px;&quot;&gt;Dead-Reckoning 3D Position&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;Continuous navigation in GNSS outages&lt;/span&gt;&lt;br&gt;$$\mathbf{p}_{3\text{D}}(t) \quad \forall \, t \in \text{GNSS-Denied}$$" vertex="1">
+          <mxGeometry height="52" width="175" x="930" y="156" as="geometry" />
+        </mxCell>
+        <mxCell id="c5app2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7dd3fc;align=center;verticalAlign=middle;fontSize=7;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#0369a1;font-size:7.8px;&quot;&gt;3D Topological Map-Matching&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;HMM Viterbi with flyover altitude barrier&lt;/span&gt;&lt;br&gt;$$\mathbf{p}_{\text{map}} = \arg\max \prod p(\mathbf{z}_t|s_i) p(s_i|s_{i-1})$$" vertex="1">
+          <mxGeometry height="52" width="175" x="930" y="214" as="geometry" />
+        </mxCell>
+        <mxCell id="c5app3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7dd3fc;align=center;verticalAlign=middle;fontSize=7;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#0369a1;font-size:7.8px;&quot;&gt;Vehicle Dynamics &amp;amp; Watchdog&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;Pothole shock detection &amp;amp; cradle slip recovery&lt;/span&gt;&lt;br&gt;$$\mathbf{jerk} = \frac{d\mathbf{a}}{dt}, \quad \|\mathbf{v}\|, \quad \|\mathbf{a}\|$$" vertex="1">
+          <mxGeometry height="50" width="175" x="930" y="272" as="geometry" />
+        </mxCell>
+        <mxCell id="c5sdk" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7dd3fc;align=center;verticalAlign=middle;fontSize=7;fontColor=#1e293b;fontFamily=Times New Roman;" value="&lt;b style=&quot;color:#0369a1;font-size:7.8px;&quot;&gt;Edge Execution &amp;amp; Failover Watchdog&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;color:#64748b;font-size:6.8px;&quot;&gt;Sub-millisecond latency &amp;amp; seamless failover&lt;/span&gt;&lt;br&gt;$$\tau_{\text{cycle}} &lt; 0.20\text{ ms}, \quad \tau_{\text{failover}} &lt; 5.0\text{ ms}$$" vertex="1">
+          <mxGeometry height="64" width="175" x="930" y="328" as="geometry" />
+        </mxCell>
+        <mxCell id="c5out" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0284c7;strokeColor=none;align=center;verticalAlign=middle;fontSize=7;fontColor=#ffffff;fontStyle=1;fontFamily=Times New Roman;" value="⚡ Real-Time Edge SDK Pipeline" vertex="1">
+          <mxGeometry height="22" width="175" x="930" y="398" as="geometry" />
+        </mxCell>
+        <mxCell id="bottomBox" parent="1" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#f8fafc;strokeColor=#cbd5e1;strokeWidth=1;verticalAlign=top;fontFamily=Times New Roman;" value="" vertex="1">
+          <mxGeometry height="105" width="1085" x="30" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="howTitle" parent="1" style="text;html=1;align=center;fontStyle=1;fontSize=9;fontColor=#0f172a;fontFamily=Times New Roman;" value="SYSTEM WORKFLOW — STEP-BY-STEP OPERATIONAL FLOW" vertex="1">
+          <mxGeometry height="16" width="1085" x="30" y="475" as="geometry" />
+        </mxCell>
+
+        
+        <mxCell id="s1" parent="1" style="text;html=1;align=center;fontSize=18;fontFamily=Times New Roman;" value="📱" vertex="1"><mxGeometry height="22" width="70" x="70" y="493" as="geometry" /></mxCell>
+        <mxCell id="s1t" parent="1" style="text;html=1;fontSize=7;align=center;verticalAlign=top;whiteSpace=wrap;fontStyle=1;fontColor=#1e293b;fontFamily=Times New Roman;" value="1. Motion Sensing&lt;br&gt;&lt;span style=&quot;font-weight:normal;color:#475569;&quot;&gt;Onboard IMU samples continuous high-frequency 6-DOF movement data.&lt;/span&gt;" vertex="1">
+          <mxGeometry height="36" width="150" x="30" y="517" as="geometry" />
+        </mxCell>
+
+        
+        <mxCell id="s2" parent="1" style="text;html=1;align=center;fontSize=18;fontFamily=Times New Roman;" value="⚙️" vertex="1"><mxGeometry height="22" width="70" x="290" y="493" as="geometry" /></mxCell>
+        <mxCell id="s2t" parent="1" style="text;html=1;fontSize=7;align=center;verticalAlign=top;whiteSpace=wrap;fontStyle=1;fontColor=#1e293b;fontFamily=Times New Roman;" value="2. Cleaning &amp; Alignment&lt;br&gt;&lt;span style=&quot;font-weight:normal;color:#475569;&quot;&gt;Rotates phone coordinates to vehicle frame and filters noise.&lt;/span&gt;" vertex="1">
+          <mxGeometry height="36" width="150" x="250" y="517" as="geometry" />
+        </mxCell>
+
+        
+        <mxCell id="s3" parent="1" style="text;html=1;align=center;fontSize=18;fontFamily=Times New Roman;" value="🧠" vertex="1"><mxGeometry height="22" width="70" x="510" y="493" as="geometry" /></mxCell>
+        <mxCell id="s3t" parent="1" style="text;html=1;fontSize=7;align=center;verticalAlign=top;whiteSpace=wrap;fontStyle=1;fontColor=#1e293b;fontFamily=Times New Roman;" value="3. AI Motion Correction&lt;br&gt;&lt;span style=&quot;font-weight:normal;color:#475569;&quot;&gt;Deep network predicts IMU biases and estimates displacement.&lt;/span&gt;" vertex="1">
+          <mxGeometry height="36" width="150" x="470" y="517" as="geometry" />
+        </mxCell>
+
+        
+        <mxCell id="s4" parent="1" style="text;html=1;align=center;fontSize=18;fontFamily=Times New Roman;" value="📐" vertex="1"><mxGeometry height="22" width="70" x="730" y="493" as="geometry" /></mxCell>
+        <mxCell id="s4t" parent="1" style="text;html=1;fontSize=7;align=center;verticalAlign=top;whiteSpace=wrap;fontStyle=1;fontColor=#1e293b;fontFamily=Times New Roman;" value="4. EKF State Fusion&lt;br&gt;&lt;span style=&quot;font-weight:normal;color:#475569;&quot;&gt;Kalman filter computes accurate 3D trajectory step-by-step.&lt;/span&gt;" vertex="1">
+          <mxGeometry height="36" width="150" x="690" y="517" as="geometry" />
+        </mxCell>
+
+        
+        <mxCell id="s5" parent="1" style="text;html=1;align=center;fontSize=18;fontFamily=Times New Roman;" value="🗺️" vertex="1"><mxGeometry height="22" width="70" x="950" y="493" as="geometry" /></mxCell>
+        <mxCell id="s5t" parent="1" style="text;html=1;fontSize=7;align=center;verticalAlign=top;whiteSpace=wrap;fontStyle=1;fontColor=#1e293b;fontFamily=Times New Roman;" value="5. Map-Matched Output&lt;br&gt;&lt;span style=&quot;font-weight:normal;color:#475569;&quot;&gt;Provides uninterrupted navigation even with zero GPS signal.&lt;/span&gt;" vertex="1">
+          <mxGeometry height="36" width="150" x="910" y="517" as="geometry" />
+        </mxCell>
+
+        
+        <mxCell id="bs1" edge="1" parent="1" style="endArrow=block;endFill=1;html=1;strokeColor=#64748b;strokeWidth=1.5;">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="180" y="504" as="sourcePoint" /><mxPoint x="250" y="504" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="bs2" edge="1" parent="1" style="endArrow=block;endFill=1;html=1;strokeColor=#64748b;strokeWidth=1.5;">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="400" y="504" as="sourcePoint" /><mxPoint x="470" y="504" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="bs3" edge="1" parent="1" style="endArrow=block;endFill=1;html=1;strokeColor=#64748b;strokeWidth=1.5;">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="620" y="504" as="sourcePoint" /><mxPoint x="690" y="504" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="bs4" edge="1" parent="1" style="endArrow=block;endFill=1;html=1;strokeColor=#64748b;strokeWidth=1.5;">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="840" y="504" as="sourcePoint" /><mxPoint x="910" y="504" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

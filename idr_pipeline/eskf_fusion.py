@@ -1,0 +1,246 @@
+r"""
+idr_pipeline/eskf_fusion.py
+===========================
+15-State Error-State Kalman Filter (ESKF) for 3D Vehicle Dead Reckoning.
+
+Addresses Claim 2:
+"Physics constraints + sensor fusion bound the error: Combining the AI speed estimate
+with non-holonomic vehicle constraints inside an Error-State Kalman Filter keeps
+position drift under 10% of distance traveled during a GNSS outage."
+
+Coordinate System:
+- Navigation Frame (n): Local East (x), North (y), Up (z) tangent to WGS-84.
+- Body Frame (b): Forward (x_b), Lateral/Right (y_b), Up (z_b).
+- Attitude: Yaw (azimuth from North), Pitch (elevation), Roll (bank).
+
+States:
+    delta_x = [delta_p^n, delta_v^n, delta_theta^n, delta_b_a^b, delta_b_g^b]^T in R^15
+
+Author: Autonomous Navigation Research Team
+"""
+
+import numpy as np
+from typing import Tuple, Optional
+
+
+def skew_symmetric(v: np.ndarray) -> np.ndarray:
+    """Computes 3x3 skew-symmetric cross-product matrix [v]_x."""
+    return np.array([
+        [0.0, -v[2], v[1]],
+        [v[2], 0.0, -v[0]],
+        [-v[1], v[0], 0.0]
+    ])
+
+
+def euler_to_rotation_matrix(roll: float, pitch: float, yaw: float) -> np.ndarray:
+    """
+    Direction Cosine Matrix R_b^n from vehicle body frame (b) to navigation frame (n: East, North, Up).
+    Yaw is azimuth from North (0 = North, pi/2 = East).
+    Pitch is elevation angle.
+    Roll is bank angle.
+    """
+    # Column 0: Forward x_b vector in navigation frame
+    r1 = np.array([
+        np.sin(yaw) * np.cos(pitch),
+        np.cos(yaw) * np.cos(pitch),
+        np.sin(pitch)
+    ])
+    # Column 1: Lateral/Right y_b vector in navigation frame
+    r2 = np.array([
+        np.cos(yaw),
+        -np.sin(yaw),
+        0.0
+    ])
+    # Column 2: Vertical z_b vector in navigation frame
+    r3 = np.array([
+        -np.sin(yaw) * np.sin(pitch),
+        -np.cos(yaw) * np.sin(pitch),
+        np.cos(pitch)
+    ])
+    return np.column_stack([r1, r2, r3])
+
+
+def rotation_matrix_to_euler(R: np.ndarray) -> Tuple[float, float, float]:
+    """Extracts roll, pitch, yaw (azimuth from North) from R_b^n."""
+    pitch = float(np.arcsin(np.clip(R[2, 0], -1.0, 1.0)))
+    yaw = float(np.arctan2(R[0, 0], R[1, 0]))
+    roll = float(np.arctan2(-R[2, 1], R[2, 2]))
+    return roll, pitch, yaw
+
+
+class ErrorStateKalmanFilter:
+    """
+    15-State Error-State Kalman Filter for 3D land vehicle dead reckoning.
+    """
+
+    def __init__(
+        self,
+        init_pos: np.ndarray,
+        init_vel: np.ndarray,
+        init_euler: np.ndarray, # [roll, pitch, yaw]
+        init_ba: Optional[np.ndarray] = None,
+        init_bg: Optional[np.ndarray] = None,
+        acc_noise: float = 0.15,
+        gyro_noise: float = 0.008,
+        acc_bias_noise: float = 1e-4,
+        gyro_bias_noise: float = 1e-5
+    ):
+        # 1. Nominal States
+        self.p = init_pos.astype(float).copy()    # [East, North, Up] in meters
+        self.v = init_vel.astype(float).copy()    # [vx, vy, vz] in m/s (nav frame)
+        self.roll = float(init_euler[0])
+        self.pitch = float(init_euler[1])
+        self.yaw = float(init_euler[2])
+        self.R = euler_to_rotation_matrix(self.roll, self.pitch, self.yaw)
+
+        self.ba = np.zeros(3) if init_ba is None else init_ba.astype(float).copy()
+        self.bg = np.zeros(3) if init_bg is None else init_bg.astype(float).copy()
+
+        # Gravity in navigation frame (ENU: gravity points downwards along -Up)
+        self.g_nav = np.array([0.0, 0.0, -9.80665])
+
+        # 2. Error State Covariance Matrix P (15x15)
+        self.P = np.diag([
+            1.0, 1.0, 2.0,       # pos cov (m^2)
+            0.2, 0.2, 0.2,       # vel cov ((m/s)^2)
+            0.005, 0.005, 0.01,  # att cov (rad^2)
+            0.01, 0.01, 0.01,    # acc bias cov ((m/s^2)^2)
+            1e-5, 1e-5, 1e-5     # gyr bias cov ((rad/s)^2)
+        ])
+
+        # Process Noise spectral densities
+        self.q_acc = acc_noise**2
+        self.q_gyr = gyro_noise**2
+        self.q_ba = acc_bias_noise**2
+        self.q_bg = gyro_bias_noise**2
+
+    def predict(self, accel_meas: np.ndarray, gyro_meas: np.ndarray, dt: float):
+        """
+        Mechanization and Error State Covariance Propagation.
+        """
+        # Unbias measurements
+        f_b = accel_meas - self.ba
+        w_b = gyro_meas - self.bg
+
+        # --- A. Nominal State Mechanization ---
+        # Specific force transformed to navigation frame
+        f_n = self.R @ f_b
+        # Linear acceleration: a^n = f^n + g^n
+        a_n = f_n + self.g_nav
+
+        # Trapezoidal position and velocity update
+        self.p += self.v * dt + 0.5 * a_n * dt**2
+        self.v += a_n * dt
+
+        # Attitude update via yaw rate integration
+        self.yaw += float(w_b[2] * dt)
+        self.R = euler_to_rotation_matrix(self.roll, self.pitch, self.yaw)
+
+        # --- B. Continuous Error State Matrix F (15x15) ---
+        F = np.zeros((15, 15))
+        F[0:3, 3:6] = np.eye(3)
+        F[3:6, 6:9] = -skew_symmetric(f_n)
+        F[3:6, 9:12] = -self.R
+        F[6:9, 12:15] = -self.R
+
+        Phi = np.eye(15) + F * dt
+
+        # Process noise covariance Q_d
+        Q_d = np.zeros((15, 15))
+        Q_d[3:6, 3:6] = np.eye(3) * self.q_acc * dt
+        Q_d[6:9, 6:9] = np.eye(3) * self.q_gyr * dt
+        Q_d[9:12, 9:12] = np.eye(3) * self.q_ba * dt
+        Q_d[12:15, 12:15] = np.eye(3) * self.q_bg * dt
+
+        self.P = Phi @ self.P @ Phi.T + Q_d
+
+    def update_gnss(self, gnss_pos: np.ndarray, r_gnss: float = 2.5):
+        """Measurement update using GNSS absolute position."""
+        dz = gnss_pos - self.p
+        H = np.zeros((3, 15))
+        H[0:3, 0:3] = np.eye(3)
+        R_cov = np.eye(3) * (r_gnss**2)
+        self._apply_kalman_update(dz, H, R_cov)
+
+    def update_ai_velocity(self, v_ai: float, r_ai: float = 0.35):
+        """
+        Measurement update using AI forward speed estimate.
+        Forward speed in vehicle body frame: v_x^b = [1, 0, 0] @ R.T @ v^n.
+        """
+        v_b = self.R.T @ self.v
+        dz = np.array([v_ai - v_b[0]])
+
+        H = np.zeros((1, 15))
+        H[0, 3:6] = self.R[:, 0]  # First column of R is forward body axis in nav frame
+        H[0, 6:9] = -self.R[:, 0] @ skew_symmetric(self.v)
+
+        R_cov = np.array([[r_ai**2]])
+        self._apply_kalman_update(dz, H, R_cov)
+
+    def update_nhc(self, r_lat: float = 0.05, r_vert: float = 0.05):
+        """
+        Non-Holonomic Constraints (NHC) measurement update.
+        Enforces lateral velocity v_y^b = 0 and vertical velocity v_z^b = 0.
+        """
+        v_b = self.R.T @ self.v
+        dz = np.array([-v_b[1], -v_b[2]])
+
+        H = np.zeros((2, 15))
+        H[0, 3:6] = self.R[:, 1]  # Lateral axis
+        H[0, 6:9] = -self.R[:, 1] @ skew_symmetric(self.v)
+
+        H[1, 3:6] = self.R[:, 2]  # Vertical axis
+        H[1, 6:9] = -self.R[:, 2] @ skew_symmetric(self.v)
+
+        R_cov = np.diag([r_lat**2, r_vert**2])
+        self._apply_kalman_update(dz, H, R_cov)
+
+    def update_zupt(self, r_zupt: float = 0.01):
+        """Zero Velocity Updates (ZUPT)."""
+        dz = np.array([0.0, 0.0, 0.0]) - self.v
+        H = np.zeros((3, 15))
+        H[0:3, 3:6] = np.eye(3)
+        R_cov = np.eye(3) * (r_zupt**2)
+        self._apply_kalman_update(dz, H, R_cov)
+
+    def update_altitude(self, alt_meas: float, r_alt: float = 0.8):
+        """Barometric altitude measurement update."""
+        dz = np.array([alt_meas - self.p[2]])
+        H = np.zeros((1, 15))
+        H[0, 2] = 1.0
+        R_cov = np.array([[r_alt**2]])
+        self._apply_kalman_update(dz, H, R_cov)
+
+    def update_heading(self, heading_meas: float, r_yaw: float = 0.05):
+        """
+        Magnetometer / compass tilt-compensated heading measurement update.
+        Constrains heading drift in vehicle yaw state.
+        """
+        # Smallest signed angle difference
+        dyaw = np.arctan2(np.sin(heading_meas - self.yaw), np.cos(heading_meas - self.yaw))
+        dz = np.array([dyaw])
+        H = np.zeros((1, 15))
+        H[0, 8] = 1.0
+        R_cov = np.array([[r_yaw**2]])
+        self._apply_kalman_update(dz, H, R_cov)
+
+    def _apply_kalman_update(self, dz: np.ndarray, H: np.ndarray, R_cov: np.ndarray):
+        """Applies Joseph-form covariance update and injects errors into nominal state."""
+        S = H @ self.P @ H.T + R_cov
+        K = self.P @ H.T @ np.linalg.inv(S)
+
+        dx = K @ dz
+
+        # Inject into nominal states
+        self.p += dx[0:3]
+        self.v += dx[3:6]
+
+        self.yaw += float(dx[8]) # Yaw error correction
+        self.R = euler_to_rotation_matrix(self.roll, self.pitch, self.yaw)
+
+        self.ba += dx[9:12]
+        self.bg += dx[12:15]
+
+        # Joseph form update for numerical stability:
+        I_KH = np.eye(15) - K @ H
+        self.P = I_KH @ self.P @ I_KH.T + K @ R_cov @ K.T
