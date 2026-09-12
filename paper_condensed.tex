@@ -64,7 +64,7 @@ Inertial dead reckoning (DR) provides self-contained positioning that is immune 
 Two practical challenges prevent classical inertial dead reckoning from operating reliably on commodity smartphones:
 \begin{enumerate}
 \item \textbf{Absence of Direct Speedometer Telemetry}: Without physical access to the vehicle OBD-II diagnostic port or CAN bus, forward wheel speed cannot be directly observed. Longitudinal velocity must be estimated purely from noisy, gravitationally coupled accelerometer and gyroscope streams \cite{brossard2020, qian2025}.
-\item \textbf{Arbitrary Orientation, Cradle Slip, and Road Shocks}: Smartphones are placed arbitrarily in commercial cradles without mechanical alignment to the vehicle chassis. Road vibrations (15--30\,Hz engine idle) and severe pothole impulses ($\le 4.0g$) rapidly corrupt double integration. Furthermore, sharp cornering can cause the phone to slip or tilt within its cradle, destroying the coordinate transformation matrix and corrupting attitude estimation unless detected and re-calibrated in real time \cite{matos2025}.
+\item \textbf{Arbitrary Orientation, Cradle Slip, and Road Shocks}: Smartphones are placed arbitrarily in commercial cradles without mechanical alignment to the vehicle chassis. Road vibrations (15--30\,Hz engine idle) and severe pothole impulses ($\le 3.2g$) rapidly corrupt double integration. Furthermore, sharp cornering can cause the phone to slip or tilt within its cradle, destroying the coordinate transformation matrix and corrupting attitude estimation unless detected and re-calibrated in real time \cite{matos2025}.
 \end{enumerate}
 
 \subsection{Aim and Contributions}
